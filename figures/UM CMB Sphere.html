@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>UM CMB · c² = c + 1</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  :root {
+    --cyan: #4fc3f7;
+    --gold: #ffd54f;
+    --red:  #ef5350;
+    --orange: #ff8c00;
+    --ink:  #050510;
+    --panel: rgba(8, 8, 12, 0.82);
+    --border: #2a2a30;
+  }
+  html, body {
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
+    background: #000;
+    overflow: hidden;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: #aaa;
+    -webkit-font-smoothing: antialiased;
+  }
+  #scene { position: fixed; inset: 0; }
+
+  .panel {
+    position: fixed;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    padding: 12px 14px;
+    font-size: 11px;
+    line-height: 1.55;
+    color: #bbb;
+    user-select: none;
+  }
+  .panel.mono, .panel .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+
+  #hud {
+    top: 16px; left: 16px;
+    min-width: 232px;
+  }
+  #hud .title {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 4px;
+  }
+  #hud .eq {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    color: var(--orange);
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+  #hud .consts {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    color: #888;
+    font-size: 10.5px;
+    margin-bottom: 10px;
+  }
+  #hud .row {
+    display: grid;
+    grid-template-columns: 70px 56px 1fr 10px;
+    column-gap: 10px;
+    align-items: center;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 11px;
+    padding: 2px 0;
+  }
+  #hud .row .lbl { color: #ddd; }
+  #hud .row .val { color: #fff; }
+  #hud .row .desc { color: #888; font-family: system-ui, sans-serif; font-size: 10.5px; }
+  #hud .row .mark { color: var(--gold); font-weight: 700; }
+  #hud .row .swatch {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: 1px;
+  }
+  #hud .row.L .lbl::before { content:""; display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--cyan); margin-right:8px; vertical-align:1px; }
+  #hud .row.B .lbl::before { content:""; display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--gold); margin-right:8px; vertical-align:1px; }
+  #hud .row.M .lbl::before { content:""; display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--red);  margin-right:8px; vertical-align:1px; }
+  #hud .divider {
+    height: 1px; background: var(--border);
+    margin: 10px -14px;
+  }
+
+  /* Bottom controls */
+  #controls {
+    bottom: 18px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 6px;
+    padding: 6px;
+  }
+  #controls button {
+    appearance: none;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: #bbb;
+    font: inherit;
+    font-size: 10.5px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    padding: 7px 14px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  #controls button:hover { color: #fff; border-color: #4a4a55; }
+  #controls button.active { color: #fff; border-color: var(--orange); background: rgba(255,140,0,0.08); }
+  #controls button[disabled] { color: #555; cursor: not-allowed; border-color: #1f1f25; }
+  #controls .sep {
+    width: 1px; background: var(--border); margin: 2px 4px;
+  }
+
+  /* Colorbar */
+  #colorbar {
+    bottom: 72px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 14px;
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
+  #colorbar .bar {
+    width: 280px; height: 8px;
+    border-radius: 2px;
+    background: linear-gradient(to right,
+      #ffffff 0%, #ff0000 12%, #ff6600 28%, #000000 50%,
+      #0044ff 72%, #0000aa 100%);
+    /* note: visual order = hot→cold left→right; we'll label accordingly */
+    border: 1px solid #1a1a20;
+  }
+  #colorbar .lab { color: #999; font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  #colorbar .units { color: #777; font-family: ui-monospace, monospace; margin-left: 4px; }
+
+  /* Bottom-right meta */
+  #meta {
+    position: fixed;
+    bottom: 18px; right: 16px;
+    font-size: 10px;
+    color: #666;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-align: right;
+  }
+  #meta .small { font-size: 9.5px; color: #555; margin-top: 2px; letter-spacing: 0.5px; text-transform: none; font-style: italic; font-family: ui-monospace, monospace; }
+
+  /* Top-right legend (channel zones) */
+  #legend {
+    top: 16px; right: 16px;
+    font-size: 10.5px;
+  }
+  #legend .head {
+    font-size: 9.5px; letter-spacing: 1.6px; text-transform: uppercase;
+    color: #777; margin-bottom: 6px;
+  }
+  #legend .lr { display: flex; align-items: center; gap: 8px; padding: 1px 0; font-family: ui-monospace, monospace; }
+  #legend .lr .sw { width: 10px; height: 10px; border-radius: 2px; }
+  #legend .lr .nm { color: #ccc; width: 64px; }
+  #legend .lr .ds { color: #777; font-family: system-ui, sans-serif; }
+
+  .fade-hint {
+    position: fixed;
+    bottom: 132px; left: 50%; transform: translateX(-50%);
+    font-size: 10px; color: #555; letter-spacing: 1.5px; text-transform: uppercase;
+    pointer-events: none;
+    transition: opacity .4s ease;
+  }
+</style>
+</head>
+<body>
+  <canvas id="scene"></canvas>
+
+  <div id="hud" class="panel">
+    <div class="title">UM CMB</div>
+    <div class="eq">c² = c + 1</div>
+    <div class="consts">
+      φ = 1.6180339887<br/>
+      r = 1 / (2φ) = 0.3090169944
+    </div>
+    <div class="divider"></div>
+    <div class="row L"><span class="lbl">Light</span><span class="val">0.4775</span><span class="desc">smooth · (1−r)²</span><span></span></div>
+    <div class="row B"><span class="lbl">Boundary</span><span class="val">0.4271</span><span class="desc">interface · 2r(1−r)</span><span class="mark">←</span></div>
+    <div class="row M"><span class="lbl">Matter</span><span class="val">0.0955</span><span class="desc">dense · r²</span><span></span></div>
+  </div>
+
+  <div id="legend" class="panel">
+    <div class="head">channel zones</div>
+    <div class="lr"><span class="sw" style="background:var(--cyan)"></span><span class="nm">Light</span><span class="ds">smooth, low-freq</span></div>
+    <div class="lr"><span class="sw" style="background:var(--gold)"></span><span class="nm">Boundary</span><span class="ds">labyrinthine</span></div>
+    <div class="lr"><span class="sw" style="background:var(--red)"></span><span class="nm">Matter</span><span class="ds">dense spots</span></div>
+  </div>
+
+  <div id="colorbar" class="panel">
+    <span class="lab">+300</span>
+    <div class="bar"></div>
+    <span class="lab">−300</span>
+    <span class="units">δT (μK)</span>
+  </div>
+
+  <div id="controls" class="panel">
+    <button id="btn-rotate" class="active" title="Toggle auto-rotation">Rotate</button>
+    <button id="btn-wire" title="Show spherical-harmonic decomposition grid">Wireframe</button>
+    <span class="sep"></span>
+    <button id="btn-reset" title="Reset camera">Reset</button>
+  </div>
+
+  <div class="fade-hint" id="hint">drag to orbit  ·  scroll to zoom</div>
+
+  <div id="meta">
+    Joseph Shields · Unified Mechanics · 2026
+    <div class="small">Procedural sky · derived from c² = c + 1</div>
+  </div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.165/build/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+// --- Renderer / scene / camera ---
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 3));
+renderer.setClearColor(0x000000, 1);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(40, 1, 0.01, 100);
+const DEFAULT_DIST = 3.4;
+camera.position.set(0, 0, DEFAULT_DIST);
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+resize();
+window.addEventListener('resize', resize);
+
+// --- Sphere geometry: 512 segments is heavy. 256 is plenty since shading is procedural. ---
+const geo = new THREE.SphereGeometry(1.0, 512, 256);
+
+// --- Shader: classic Ashima 3D simplex noise, then channel-zoned FBM ---
+const vertexShader = /* glsl */`
+  varying vec3 vPos;
+  varying vec3 vNormal;
+  void main() {
+    vPos = position;
+    vNormal = normalize(normal);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const fragmentShader = /* glsl */`
+precision highp float;
+varying vec3 vPos;
+varying vec3 vNormal;
+
+uniform float uTime;
+uniform float uW_L;
+uniform float uW_B;
+uniform float uW_M;
+uniform float uContrast;
+uniform vec3  uLightPos;
+
+// -------------------------------------------------------------
+// Ashima 3D Simplex Noise (Stefan Gustavson, Ian McEwan, MIT licence)
+// -------------------------------------------------------------
+vec3 mod289(vec3 x){ return x - floor(x * (1.0/289.0)) * 289.0; }
+vec4 mod289(vec4 x){ return x - floor(x * (1.0/289.0)) * 289.0; }
+vec4 permute(vec4 x){ return mod289(((x*34.0)+1.0)*x); }
+vec4 taylorInvSqrt(vec4 r){ return 1.79284291400159 - 0.85373472095314 * r; }
+
+float snoise(vec3 v){
+  const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+  const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+  vec3 i  = floor(v + dot(v, C.yyy));
+  vec3 x0 = v - i + dot(i, C.xxx);
+  vec3 g = step(x0.yzx, x0.xyz);
+  vec3 l = 1.0 - g;
+  vec3 i1 = min(g.xyz, l.zxy);
+  vec3 i2 = max(g.xyz, l.zxy);
+  vec3 x1 = x0 - i1 + C.xxx;
+  vec3 x2 = x0 - i2 + C.yyy;
+  vec3 x3 = x0 - D.yyy;
+  i = mod289(i);
+  vec4 p = permute( permute( permute(
+            i.z + vec4(0.0, i1.z, i2.z, 1.0))
+          + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+          + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+  float n_ = 0.142857142857;
+  vec3 ns = n_ * D.wyz - D.xzx;
+  vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+  vec4 x_ = floor(j * ns.z);
+  vec4 y_ = floor(j - 7.0 * x_);
+  vec4 x = x_ * ns.x + ns.yyyy;
+  vec4 y = y_ * ns.x + ns.yyyy;
+  vec4 h = 1.0 - abs(x) - abs(y);
+  vec4 b0 = vec4(x.xy, y.xy);
+  vec4 b1 = vec4(x.zw, y.zw);
+  vec4 s0 = floor(b0)*2.0 + 1.0;
+  vec4 s1 = floor(b1)*2.0 + 1.0;
+  vec4 sh = -step(h, vec4(0.0));
+  vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
+  vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
+  vec3 p0 = vec3(a0.xy, h.x);
+  vec3 p1 = vec3(a0.zw, h.y);
+  vec3 p2 = vec3(a1.xy, h.z);
+  vec3 p3 = vec3(a1.zw, h.w);
+  vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
+  p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+  vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+  m = m * m;
+  return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+}
+
+// FBM — smooth (light)
+float fbmSmooth(vec3 p) {
+  float a = 0.5, f = 1.0, s = 0.0, n = 0.0;
+  for (int i = 0; i < 5; i++) {
+    s += a * snoise(p * f);
+    n += a;
+    a *= 0.5; f *= 2.05;
+  }
+  return s / n; // ~[-1,1]
+}
+
+// FBM — turbulent (boundary). |noise| sum → ridged labyrinth, zero-centered.
+float fbmTurb(vec3 p) {
+  float a = 0.5, f = 1.6, s = 0.0, n = 0.0;
+  for (int i = 0; i < 7; i++) {
+    s += a * abs(snoise(p * f));
+    n += a;
+    a *= 0.55; f *= 2.05;
+  }
+  // |snoise| avg ~0.4 → 1 - 2*0.4 = 0.2 bias; subtract it.
+  return 1.0 - (s / n) * 2.0 - 0.20;
+}
+
+// Matter — dense compact spots. Sparse, mostly zero with sharp peaks.
+float fbmSpots(vec3 p) {
+  vec3 q = p * 8.0;
+  vec3 warp = vec3(snoise(q+1.7), snoise(q-3.1), snoise(q+5.4)) * 0.4;
+  float n  = snoise(q * 1.6 + warp * 2.0);
+  float n2 = snoise(q * 3.2 - warp);
+  float core = max(n, n2);
+  return smoothstep(0.5, 0.85, core); // [0,1], spots only at real peaks
+}
+
+// Zone weights: low-frequency noise distributes channels with given fractions
+void zoneMasks(vec3 p, out float mL, out float mB, out float mM) {
+  float z = snoise(p * 1.35 + vec3(13.7, -2.1, 9.4)) * 0.65
+          + snoise(p * 2.6  + vec3(-4.2, 8.8, 1.2)) * 0.35;
+  // z in roughly [-1, 1]. Distribute by area fractions w_L, w_B, w_M.
+  float t1 = 2.0 * uW_L - 1.0;          // threshold L | B
+  float t2 = t1 + 2.0 * uW_B;           // threshold B | M
+  float kL = 0.18;
+  float kB = 0.18;
+  mL = 1.0 - smoothstep(t1 - kL, t1 + kL, z);
+  float mNotM = 1.0 - smoothstep(t2 - kB, t2 + kB, z);
+  mM = 1.0 - mNotM;
+  mB = clamp(1.0 - mL - mM, 0.0, 1.0);
+}
+
+// CMB false-colour ramp.
+// Input t in [-1, 1] (cold→hot). Reference style: blue→cyan→white→yellow→red→darkred.
+vec3 cmbColor(float t) {
+  t = clamp(t * 0.5 + 0.5, 0.0, 1.0);
+  // 7 anchor stops, Planck/WMAP-style
+  vec3 c0 = vec3(0.020, 0.020, 0.32);  // deep navy   (coldest)
+  vec3 c1 = vec3(0.060, 0.330, 0.78);  // blue
+  vec3 c2 = vec3(0.440, 0.810, 0.94);  // cyan
+  vec3 c3 = vec3(0.950, 0.950, 0.92);  // pale cream  (mean)
+  vec3 c4 = vec3(0.980, 0.730, 0.28);  // gold
+  vec3 c5 = vec3(0.930, 0.250, 0.10);  // red
+  vec3 c6 = vec3(0.420, 0.020, 0.00);  // dark red    (hottest)
+
+  vec3 col;
+  if      (t < 1.0/6.0) col = mix(c0, c1, t * 6.0);
+  else if (t < 2.0/6.0) col = mix(c1, c2, (t - 1.0/6.0) * 6.0);
+  else if (t < 3.0/6.0) col = mix(c2, c3, (t - 2.0/6.0) * 6.0);
+  else if (t < 4.0/6.0) col = mix(c3, c4, (t - 3.0/6.0) * 6.0);
+  else if (t < 5.0/6.0) col = mix(c4, c5, (t - 4.0/6.0) * 6.0);
+  else                  col = mix(c5, c6, (t - 5.0/6.0) * 6.0);
+  return col;
+}
+
+void main() {
+  vec3 p = normalize(vPos);
+
+  // gentle domain-warp so patterns aren't axis-aligned
+  vec3 warp = vec3(snoise(p*0.8 + 2.3), snoise(p*0.8 - 1.7), snoise(p*0.8 + 5.0)) * 0.06;
+  vec3 q = normalize(p + warp);
+
+  // Zone masks (per-pixel soft partition, area fractions = uW_L / uW_B / uW_M)
+  float mL, mB, mM;
+  zoneMasks(q, mL, mB, mM);
+
+  // Per-channel temperature fields, each roughly zero-mean.
+  //   Light    → smooth, full hot↔cold swing  (a hot zone CAN read red, a cold one cyan)
+  //   Boundary → ridged labyrinth, mild swing
+  //   Matter   → sparse cold spots
+  float tL = fbmSmooth(q * 2.6) * 0.85;
+  float tB = fbmTurb(q * 4.0) * 0.70;
+  float tM = -fbmSpots(q * 1.2) * 1.20;
+
+  // µK grain, zero-mean, present everywhere
+  float grain = snoise(q * 28.0) * 0.18 + snoise(q * 60.0) * 0.10;
+
+  float temp = mL * tL + mB * tB + mM * tM + grain;
+
+  // Final shaping: contrast then gentle peak compression on both ends so we don't blow out.
+  temp = clamp(temp * uContrast, -1.0, 1.0);
+  if (temp >  0.55) temp =  0.55 + (temp - 0.55) * 0.75;
+  if (temp < -0.55) temp = -0.55 + (temp + 0.55) * 0.85;
+
+  vec3 col = cmbColor(temp);
+
+  // No directional lighting — this is a false-colour data map, not a lit object.
+  // Very subtle limb darkening only, just to read as a sphere not a disc.
+  float view = clamp(dot(vNormal, vec3(0.0, 0.0, 1.0)), 0.0, 1.0);
+  float limb = mix(0.88, 1.0, smoothstep(0.0, 0.5, view));
+  col *= limb;
+
+  gl_FragColor = vec4(col, 1.0);
+}
+`;
+
+const uniforms = {
+  uTime: { value: 0 },
+  uW_L: { value: 0.4774575140626314 },
+  uW_B: { value: 0.42705098312484224 },
+  uW_M: { value: 0.09549150281252627 },
+  uContrast: { value: 1.0 },
+  uLightPos: { value: new THREE.Vector3(1.0, 0.7, 1.4).normalize() },
+};
+
+const mat = new THREE.ShaderMaterial({
+  vertexShader, fragmentShader, uniforms,
+});
+
+const sphere = new THREE.Mesh(geo, mat);
+scene.add(sphere);
+
+// --- Wireframe overlay (spherical harmonic decomposition grid) ---
+const wireGroup = new THREE.Group();
+wireGroup.visible = false;
+scene.add(wireGroup);
+
+// 18 meridians × 12 parallels (l=12-ish look)
+function buildWire() {
+  const R = 1.003;
+  const meridians = 18;
+  const parallels = 9; // not counting poles
+  const mat = new THREE.LineBasicMaterial({ color: 0x4fc3f7, transparent: true, opacity: 0.28 });
+
+  for (let m = 0; m < meridians; m++) {
+    const lon = (m / meridians) * Math.PI * 2;
+    const pts = [];
+    for (let i = 0; i <= 180; i++) {
+      const lat = (i / 180) * Math.PI - Math.PI / 2;
+      pts.push(new THREE.Vector3(
+        R * Math.cos(lat) * Math.cos(lon),
+        R * Math.sin(lat),
+        R * Math.cos(lat) * Math.sin(lon),
+      ));
+    }
+    wireGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat));
+  }
+  for (let p = 1; p <= parallels; p++) {
+    const lat = (p / (parallels + 1)) * Math.PI - Math.PI / 2;
+    const pts = [];
+    for (let i = 0; i <= 360; i++) {
+      const lon = (i / 360) * Math.PI * 2;
+      pts.push(new THREE.Vector3(
+        R * Math.cos(lat) * Math.cos(lon),
+        R * Math.sin(lat),
+        R * Math.cos(lat) * Math.sin(lon),
+      ));
+    }
+    wireGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat));
+  }
+}
+buildWire();
+
+// --- Orbit camera (custom, lightweight) ---
+const state = {
+  autoRotate: true,
+  rotSpeed: 0.05 * Math.PI / 180, // 0.05°/frame target
+  yaw: 0.4, pitch: 0.05,
+  targetYaw: 0.4, targetPitch: 0.05,
+  dist: DEFAULT_DIST,
+  targetDist: DEFAULT_DIST,
+  dragging: false, lastX: 0, lastY: 0,
+};
+
+function applyCamera() {
+  const cp = Math.cos(state.pitch), sp = Math.sin(state.pitch);
+  const cy = Math.cos(state.yaw),  sy = Math.sin(state.yaw);
+  camera.position.set(state.dist * cp * sy, state.dist * sp, state.dist * cp * cy);
+  camera.lookAt(0, 0, 0);
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+  state.dragging = true;
+  state.lastX = e.clientX; state.lastY = e.clientY;
+  canvas.setPointerCapture(e.pointerId);
+  // hide hint after first interaction
+  document.getElementById('hint').style.opacity = '0';
+});
+canvas.addEventListener('pointermove', (e) => {
+  if (!state.dragging) return;
+  const dx = e.clientX - state.lastX;
+  const dy = e.clientY - state.lastY;
+  state.lastX = e.clientX; state.lastY = e.clientY;
+  state.targetYaw   -= dx * 0.005;
+  state.targetPitch -= dy * 0.005;
+  state.targetPitch = Math.max(-1.45, Math.min(1.45, state.targetPitch));
+});
+canvas.addEventListener('pointerup', (e) => { state.dragging = false; });
+canvas.addEventListener('pointercancel', () => { state.dragging = false; });
+
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const k = Math.exp(e.deltaY * 0.001);
+  state.targetDist = Math.max(1.5, Math.min(8.0, state.targetDist * k));
+}, { passive: false });
+
+canvas.addEventListener('dblclick', resetCamera);
+canvas.addEventListener('contextmenu', (e) => { e.preventDefault(); resetCamera(); });
+
+function resetCamera() {
+  state.targetYaw = 0.4;
+  state.targetPitch = 0.05;
+  state.targetDist = DEFAULT_DIST;
+}
+
+// --- Buttons ---
+const btnRotate = document.getElementById('btn-rotate');
+const btnWire = document.getElementById('btn-wire');
+const btnReset = document.getElementById('btn-reset');
+
+btnRotate.addEventListener('click', () => {
+  state.autoRotate = !state.autoRotate;
+  btnRotate.classList.toggle('active', state.autoRotate);
+});
+btnWire.addEventListener('click', () => {
+  wireGroup.visible = !wireGroup.visible;
+  btnWire.classList.toggle('active', wireGroup.visible);
+});
+btnReset.addEventListener('click', resetCamera);
+
+// --- Hint auto-fade ---
+setTimeout(() => { document.getElementById('hint').style.opacity = '0'; }, 5500);
+
+// --- Render loop ---
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+
+  // smooth interp
+  state.yaw   += (state.targetYaw   - state.yaw)   * 0.15;
+  state.pitch += (state.targetPitch - state.pitch) * 0.15;
+  state.dist  += (state.targetDist  - state.dist)  * 0.12;
+
+  if (state.autoRotate && !state.dragging) {
+    state.targetYaw += state.rotSpeed * 60 * dt; // ~0.05°/frame at 60fps
+  }
+
+  applyCamera();
+  uniforms.uTime.value = now * 0.001;
+  renderer.render(scene, camera);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
