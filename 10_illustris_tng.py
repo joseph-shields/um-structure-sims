@@ -100,7 +100,7 @@ fig = go.Figure(data=[
 
 fig.update_layout(
     title=dict(
-        text=f'IllustrisTNG {SIM}  ·  z=0  ·  c² = c + 1',
+        text=f'IllustrisTNG {SIM}  ·  z=0  ·  φ² = φ + 1',
         font=dict(color='#ff8c00', family='monospace', size=15),
         x=0.02, y=0.97,
     ),

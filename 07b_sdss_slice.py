@@ -86,7 +86,7 @@ fig = go.Figure(data=[
 
 fig.update_layout(
     title=dict(
-        text='SDSS Cosmic Web  ·  2D Redshift Slice  ·  c² = c + 1',
+        text='SDSS Cosmic Web  ·  2D Redshift Slice  ·  φ² = φ + 1',
         font=dict(color='#ff8c00', family='monospace', size=15),
         x=0.02, y=0.97,
     ),

@@ -74,7 +74,7 @@ fig.add_trace(go.Image(z=img, hoverinfo='skip'))
 
 fig.update_layout(
     title=dict(
-        text='UM Fractal  ·  c² = c + 1  ·  Golden-Angle Chaos Game',
+        text='UM Fractal  ·  φ² = φ + 1  ·  Golden-Angle Chaos Game',
         font=dict(color='#ff8c00', family='monospace', size=15),
         x=0.02, y=0.97,
     ),

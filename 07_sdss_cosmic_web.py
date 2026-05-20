@@ -6,7 +6,7 @@ Pulls ~50k galaxies from SDSS DR17 via astroquery, converts
 galaxy by local number density into Light / Boundary / Matter,
 and renders an interactive plotly 3D scatter.
 
-UM axiom:  c² = c + 1
+UM axiom:  φ² = φ + 1
   Light    (1-r)² = 0.4775  → low density   → cyan   #4fc3f7
   Boundary 2r(1-r)= 0.4271  → interface     → gold   #ffd54f
   Matter   r²     = 0.0955  → high density  → red    #ef5350
@@ -126,7 +126,7 @@ fig = go.Figure(data=[
 
 fig.update_layout(
     title=dict(
-        text='SDSS Cosmic Web  ·  c² = c + 1',
+        text='SDSS Cosmic Web  ·  φ² = φ + 1',
         font=dict(color='#ff8c00', family='monospace', size=16),
         x=0.02, y=0.97,
     ),

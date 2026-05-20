@@ -87,7 +87,7 @@ fig = go.Figure(data=[go.Surface(
 
 fig.update_layout(
     title=dict(
-        text='UM CMB Sphere  ·  c² = c + 1',
+        text='UM CMB Sphere  ·  φ² = φ + 1',
         font=dict(color='#ff8c00', family='monospace', size=15),
         x=0.02, y=0.97,
     ),
@@ -108,7 +108,7 @@ fig.update_layout(
 
 fig.add_annotation(
     text=(
-        '<span style="color:#ff8c00">UM CMB  ·  c² = c + 1</span><br>'
+        '<span style="color:#ff8c00">UM CMB  ·  φ² = φ + 1</span><br>'
         '<span style="color:#ff8c00">φ = 1.6180  r = 0.3090</span><br><br>'
         f'<span style="color:#4fc3f7">Light    cold voids  {W_L:.4f}</span><br>'
         f'<span style="color:#ffd54f">Boundary interface   {W_B:.4f} ←</span><br>'

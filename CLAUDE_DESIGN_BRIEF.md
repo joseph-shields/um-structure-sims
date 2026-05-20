@@ -30,7 +30,7 @@ Embed the JSON below directly in the HTML as a const. Do not fetch it.
 
 ## Overlay (top-left corner, small)
 ```
-c² = c + 1
+φ² = φ + 1
 r = 1/(2φ) = 0.3090
 
 Light    (1-r)² = 0.4775
@@ -63,10 +63,10 @@ Single HTML file, no external assets except Three.js CDN.
 ## What it is
 An interactive 3D sphere showing a procedurally generated CMB-like temperature map
 derived from the three UM channel weights. No pre-computed tiles. No server.
-The GPU computes everything from the equation c² = c + 1.
+The GPU computes everything from the equation φ² = φ + 1.
 
 ## The physics
-Three channels from c² = c + 1:
+Three channels from φ² = φ + 1:
 ```
 φ = (1 + √5) / 2 = 1.6180339887
 r = 1 / (2φ)     = 0.3090169944
@@ -106,7 +106,7 @@ The sphere texture is generated entirely in GLSL. For each point on the sphere:
 
 ## Overlay (top-left)
 ```
-UM CMB  ·  c² = c + 1
+UM CMB  ·  φ² = φ + 1
 φ = 1.6180  r = 0.3090
 
 Light    0.4775  smooth

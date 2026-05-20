@@ -3,7 +3,7 @@
 **Joseph Shields · 2026**
 
 Five simulations projecting Unified Mechanics' three-channel recursion onto different
-physical substrates. Every figure in this repo is generated from one equation: `c² = c + 1`.
+physical substrates. Every figure in this repo is generated from one equation: `φ² = φ + 1`.
 
 ```python
 phi = (1 + 5**0.5) / 2
